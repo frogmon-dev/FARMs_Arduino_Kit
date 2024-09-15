@@ -27,5 +27,5 @@ const int     MQTT_PORT       = 1883;
 const char*   MQTT_CLIENTID   = "frogmon";
 const char*   MQTT_USERNAME   = "root";
 const char*   MQTT_PASSWORD   = "PASSWORD";
-const String  MQTT_BASE_TOPIC = "flower02";
+const char*   MQTT_BASE_TOPIC = "flower02";
 const int     MQTT_RETRY_WAIT = 5000;

@@ -147,8 +147,8 @@ bool readFloraDataCharacteristic(BLERemoteService* floraService, String baseTopi
 
   // read characteristic value
   Serial.println("- Read value from characteristic");
-  std::string value;
-  try{
+  String value;
+  try {
     value = floraCharacteristic->readValue();
   }
   catch (...) {
@@ -228,8 +228,8 @@ int readFloraBatteryCharacteristic(BLERemoteService* floraService) {
 
   // read characteristic value
   Serial.println("- Read value from characteristic");
-  std::string value;
-  try{
+  String value;
+  try {
     value = floraCharacteristic->readValue();
   }
   catch (...) {
