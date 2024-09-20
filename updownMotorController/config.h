@@ -6,6 +6,7 @@ const char*   MQTT_DEVICEID   = "FM-PUMP01";               // *앱에 등록한�
 const int     MQTT_RETRY_WAIT = 5000;                   // 원격컨트롤 서버 대기시간 - 변경 불필요
 const char*   MQTT_PUB        = "FARMs/Status/";        // 원격컨트롤 서버 상태정보용 주소 - 변경 불필요
 const char*   MQTT_SUB        = "FARMs/Control/";       // 원격컨트롤 서버 제어용 주소 - 변경 불필요
+const char*   MQTT_ALARM_SUB        = "FARMs/Alarm/";       // 원격컨트롤 서버 제어용 주소 - 변경 불필요
 
 // WIFI 설정
 const char*   ssid        = "frogmon";                  // * WIFI ID

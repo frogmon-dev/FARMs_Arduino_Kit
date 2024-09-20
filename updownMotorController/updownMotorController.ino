@@ -10,6 +10,7 @@
 
 String mPubAddr = String(MQTT_PUB) + String(MQTT_USERID)+"/"+String(MQTT_DEVICEID);
 String mSubAddr = String(MQTT_SUB) + String(MQTT_USERID)+"/"+String(MQTT_DEVICEID);
+String mAlarmSubAddr = String(MQTT_ALARM_SUB) + String(MQTT_USERID)+"/#";
 
 int  mRemote = 0;
 int  mMotorStat = 0;
@@ -83,34 +84,53 @@ void callback(char* topic, byte* payload, unsigned int length) {
     Serial.print("Failed to parse JSON: ");
     Serial.println(error.c_str());
   } else {
-    if (doc.containsKey("motor")) {
-      const char* Status = doc["motor"];
-      if (strcmp(Status, "stop") == 0) {
-        Serial.println("motor is STOP");
-        onStop();          
-        mRemote = 1;
-        mMotorStat = 0;
-        client.publish(mPubAddr.c_str(), getPubString(mRemote, mMotorStat).c_str());
-      } else if (strcmp(Status, "up") == 0) {
-        Serial.println("motor is up");          
-        onForward();
-        mRemote = 1;
-        mMotorStat = 1;
-        client.publish(mPubAddr.c_str(), getPubString(mRemote, mMotorStat).c_str());
-      } else if (strcmp(Status, "down") == 0) {
-        Serial.println("motor is down");          
-        onBackward();
-        mRemote = 1;
-        mMotorStat = 2;
-        client.publish(mPubAddr.c_str(), getPubString(mRemote, mMotorStat).c_str());
-      } else {
-        Serial.println("Invalid Motor status");
+    if (strcmp(topic, mSubAddr.c_str()) == 0) {
+      if (doc.containsKey("motor")) {
+        const char* Status = doc["motor"];
+        if (strcmp(Status, "stop") == 0) {
+          Serial.println("motor is STOP");
+          onStop();          
+          mRemote = 1;
+          mMotorStat = 0;
+          client.publish(mPubAddr.c_str(), getPubString(mRemote, mMotorStat).c_str());
+        } else if (strcmp(Status, "up") == 0) {
+          Serial.println("motor is up");          
+          onForward();
+          mRemote = 1;
+          mMotorStat = 1;
+          client.publish(mPubAddr.c_str(), getPubString(mRemote, mMotorStat).c_str());
+        } else if (strcmp(Status, "down") == 0) {
+          Serial.println("motor is down");          
+          onBackward();
+          mRemote = 1;
+          mMotorStat = 2;
+          client.publish(mPubAddr.c_str(), getPubString(mRemote, mMotorStat).c_str());
+        } else {
+          Serial.println("Invalid Motor status");
+        }      
+      } else if (doc.containsKey("status")) {
+        int numStatus = doc["status"];
+        if (numStatus == 1) {
+          Serial.println("Status request");
+          client.publish(mPubAddr.c_str(), getPubString(mRemote, mMotorStat).c_str());
+        }
       }
-    } else if (doc.containsKey("status")) {
-      int numStatus = doc["status"];
-      if (numStatus == 1) {
-        Serial.println("Status request");
-        client.publish(mPubAddr.c_str(), getPubString(mRemote, mMotorStat).c_str());
+    } else if (strcmp(topic, mAlarmSubAddr.c_str()) == 0) {
+      if (doc.containsKey("temperature")){
+        String stat = doc["temperature"];
+        if (strcmp(stat.c_str(), "toohigh") == 0) {
+          Serial.println("temper too high");          
+          onForward();
+          mRemote = 1;
+          mMotorStat = 1;
+          client.publish(mPubAddr.c_str(), getPubString(mRemote, mMotorStat).c_str());
+        } else if (strcmp(stat.c_str(), "toolow") == 0) {
+          Serial.println("temper too low");          
+          onBackward();
+          mRemote = 1;
+          mMotorStat = 2;
+          client.publish(mPubAddr.c_str(), getPubString(mRemote, mMotorStat).c_str());
+        }
       }
     }
   }
@@ -128,6 +148,7 @@ void reconnect() {
       client.publish(mPubAddr.c_str(), "connected");
       // ... and resubscribe
       client.subscribe(mSubAddr.c_str());
+      client.subscribe(mAlarmSubAddr.c_str())
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -171,7 +192,6 @@ void setup() {
 }
 
 void loop() {
-
   if (!client.connected()) {
     digitalWrite(BUILTIN_LED, LOW);
     reconnect();
@@ -189,5 +209,4 @@ void loop() {
     ++value;
     client.publish(mPubAddr.c_str(), getPubString(mRemote, mMotorStat).c_str());
   }
-
 }
