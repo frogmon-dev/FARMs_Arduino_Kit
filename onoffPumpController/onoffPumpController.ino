@@ -110,7 +110,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
       } else {
         Serial.println("Invalid pump status");
       }
-    } else if (doc.containsKey("timer")) {
+    } 
+    
+    if (doc.containsKey("timer")) {
       int timerValue = doc["timer"];
       if (timerValue > 0) {
         Serial.print("Pump is ON for ");
@@ -123,7 +125,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
         pumpTimeout = timerValue * 60000;  // 타이머 값 설정 (분 단위)
         client.publish(mPubAddr.c_str(), getPubString(mRemote, mPumpStat).c_str());
       }
-    } else if (doc.containsKey("status")) {
+    } 
+        
+    if (doc.containsKey("status")) {
       int numStatus = doc["status"];
       if (numStatus == 1) {
         Serial.println("Status request");
@@ -237,6 +241,18 @@ void loop() {
         ++value;
         client.publish(mPubAddr.c_str(), getPubString(mRemote, mPumpStat).c_str());
       }      
+    }
+  }
+  // 매 초마다 남은 시간을 출력하도록 합니다.
+  if (mPumpStat == 1 && (currentMillis - lastMsg > 1000)) {
+    lastMsg = currentMillis;
+    int remainingTime = getRemainingTime();
+    Serial.print("Remaining Time: ");
+    Serial.print(remainingTime);
+    Serial.println(" minutes");
+
+    if (client.connected()) {
+      client.publish(mPubAddr.c_str(), getPubString(mRemote, mPumpStat).c_str());
     }
   }
 }
