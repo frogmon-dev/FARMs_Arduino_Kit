@@ -17,6 +17,7 @@ unsigned long lastAttemptTime = 0;
 const long attemptInterval = 60000; 
 unsigned long pumpStartTime = 0; // 펌프가 켜진 시간을 기록할 변수
 unsigned long pumpTimeout = 1800000; // 기본 30분(1800초) 시간 제한
+int leftTime = 0;
 
 
 WiFiClient espClient;
@@ -31,15 +32,12 @@ String getPubString(int remote, int stat) {
   DynamicJsonDocument doc(100);
 
   String strStatus = stat == 1 ? "on" : "off";  
+  int remainingTime = getRemainingTime(); 
   
   doc["remote"] = remote;
   doc["pump"] = strStatus;  
-  if(stat == 1){
-      doc["timer"] = pumpTimeout / 60000; // 밀리초를 분으로 변환
-  } else {
-      doc["timer"] = 0; 
-  }
-
+  doc["timer"] = remainingTime;
+  
   // Serialize the document to a JSON string
   String jsonString;
   serializeJson(doc, jsonString);
@@ -135,6 +133,15 @@ void callback(char* topic, byte* payload, unsigned int length) {
   }    
 }
 
+int getRemainingTime() {
+  if (mPumpStat == 1) {
+    unsigned long currentMillis = millis();
+    unsigned long elapsedTime = currentMillis - pumpStartTime;
+    int remainingTime = (pumpTimeout - elapsedTime) / 1000 / 60; // 남은 시간을 분 단위로 계산
+    return remainingTime > 0 ? remainingTime : 0;
+  }
+  return 0;
+}
 
 void reconnect() {
   // Loop until we're reconnected
