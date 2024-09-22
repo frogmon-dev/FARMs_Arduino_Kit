@@ -18,6 +18,7 @@ const long attemptInterval = 60000;
 unsigned long pumpStartTime = 0; // 펌프가 켜진 시간을 기록할 변수
 unsigned long pumpTimeout = 1800000; // 기본 30분(1800초) 시간 제한
 int leftTime = 0;
+int sendTime = 0;
 
 
 WiFiClient espClient;
@@ -148,26 +149,28 @@ int getRemainingTime() {
 }
 
 void reconnect() {
-  // Loop until we're reconnected
-  while (!client.connected()) {
-    Serial.print("Attempting MQTT connection...");
-    // Create a random client ID
-    String clientId = String(MQTT_USERID) + "_" + String(MQTT_DEVICEID);
-    // Attempt to connect
-    if (client.connect(clientId.c_str())) {
-      Serial.println("connected");
-      client.publish(mPubAddr.c_str(), "connected");
-      // ... and resubscribe
-      client.subscribe(mSubAddr.c_str());
-    } else {
-      Serial.print("failed, rc=");
-      Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
-      // Wait 5 seconds before retrying
-      delay(5000);
+  static unsigned long lastReconnectAttempt = 0;  // 마지막 시도 시간 기록
+
+  if (!client.connected()) {
+    unsigned long now = millis();
+    // 5초마다 재연결 시도
+    if (now - lastReconnectAttempt > 5000) {
+      lastReconnectAttempt = now;
+      Serial.print("Attempting MQTT connection...");
+      String clientId = String(MQTT_USERID) + "_" + String(MQTT_DEVICEID);
+      if (client.connect(clientId.c_str())) {
+        Serial.println("connected");
+        client.publish(mPubAddr.c_str(), "connected");
+        client.subscribe(mSubAddr.c_str());
+      } else {
+        Serial.print("failed, rc=");
+        Serial.print(client.state());
+        Serial.println(" try again in 5 seconds");
+      }
     }
   }
 }
+
 
 void setup() {
   pinMode(BUILTIN_LED, OUTPUT);     // Initialize the BUILTIN_LED pin as an output
@@ -186,13 +189,14 @@ void setup() {
 void loop() {
   unsigned long currentMillis = millis();
 
+  // 스위치 상태 확인 및 펌프 상태 업데이트
   int switchState = digitalRead(SWITCH_PIN);
   if (lstSwitchState != switchState) {
     Serial.print("Switch Status:");
     Serial.println(switchState);
     lstSwitchState = switchState;
     mRemote = 0;    
-    if (switchState == 0){
+    if (switchState == 0) {
       mPumpStat = 1;
       digitalWrite(WATER_PIN, HIGH);
       pumpStartTime = millis();  // 펌프가 켜진 시간을 기록합니다.
@@ -203,11 +207,11 @@ void loop() {
       digitalWrite(WATER_PIN, LOW);
     }
     if (client.connected()) {
-      client.publish(mPubAddr.c_str(), getPubString(mRemote, mPumpStat).c_str());    
+      client.publish(mPubAddr.c_str(), getPubString(mRemote, mPumpStat).c_str());
     }
   }
 
-  // 펌프가 켜진 상태에서 설정된 타이머가 경과했는지 확인
+  // 펌프 타이머가 경과했는지 확인
   if (mPumpStat == 1 && (currentMillis - pumpStartTime >= pumpTimeout)) {
     Serial.println("Pump automatically turned OFF after the set time.");
     mPumpStat = 0;
@@ -217,42 +221,37 @@ void loop() {
     }
   }
 
+  // Wi-Fi 연결 상태를 확인하고 필요 시 재연결
   if (!wifiConnected || WiFi.status() != WL_CONNECTED) {
     if (currentMillis - lastAttemptTime >= attemptInterval) {
       Serial.println("Attempting to reconnect to WiFi...");
-      digitalWrite(BUILTIN_LED, HIGH);
-      setup_wifi();
       digitalWrite(BUILTIN_LED, LOW);
+      setup_wifi();
       lastAttemptTime = currentMillis;
     }
   } else {
-    if (!client.connected()) {
-      reconnect();
-    } else {
-      digitalWrite(BUILTIN_LED, LOW);
-      delay(500);
-      digitalWrite(BUILTIN_LED, HIGH);
-      delay(500);
-      client.loop();
-
-      unsigned long now = millis();
-      if (now - lastMsg > 60000) {
-        lastMsg = now;
-        ++value;
-        client.publish(mPubAddr.c_str(), getPubString(mRemote, mPumpStat).c_str());
-      }      
-    }
-  }
-  // 매 초마다 남은 시간을 출력하도록 합니다.
-  if (mPumpStat == 1 && (currentMillis - lastMsg > 1000)) {
-    lastMsg = currentMillis;
-    int remainingTime = getRemainingTime();
-    Serial.print("Remaining Time: ");
-    Serial.print(remainingTime);
-    Serial.println(" minutes");
-
+    // MQTT 클라이언트 연결 확인 및 재연결 시도
+    reconnect();  // 기존 while 루프 대신 비동기 연결 시도
     if (client.connected()) {
-      client.publish(mPubAddr.c_str(), getPubString(mRemote, mPumpStat).c_str());
+      client.loop(); // 클라이언트가 연결되어 있을 때만 loop 실행
+
+      // 1분마다 상태를 전송
+      if (sendTime > 60) {
+        sendTime = 0;
+        Serial.print("Send Mqtt State! ");
+        client.publish(mPubAddr.c_str(), getPubString(mRemote, mPumpStat).c_str());
+      }
+
+      // 1초마다 남은 시간을 체크하고 출력
+      if (currentMillis - lastMsg > 1000) {
+        digitalWrite(BUILTIN_LED, HIGH);
+        sendTime++;
+        lastMsg = currentMillis;
+        int remainingTime = getRemainingTime();
+        Serial.print("Remaining Time: ");
+        Serial.print(remainingTime);
+        Serial.println(" minutes");
+      }
     }
   }
 }
