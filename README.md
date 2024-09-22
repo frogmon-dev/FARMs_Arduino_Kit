@@ -1,4 +1,4 @@
-#스마트팜용 안드로이드 킷트
+# 스마트팜용 안드로이드 킷트
 
 1. flowercare센서 정보 수집장치 (flowercareSensorReciver)
     - 샤오미 flowercare 센서 정보를 bluetooth로 연결하여 mqtt서버로 전송

@@ -34,7 +34,12 @@ String getPubString(int remote, int stat) {
   
   doc["remote"] = remote;
   doc["pump"] = strStatus;  
-  
+  if(stat == 1){
+      doc["timer"] = pumpTimeout / 60000; // 밀리초를 분으로 변환
+  } else {
+      doc["timer"] = 0; 
+  }
+
   // Serialize the document to a JSON string
   String jsonString;
   serializeJson(doc, jsonString);
@@ -95,12 +100,14 @@ void callback(char* topic, byte* payload, unsigned int length) {
         mRemote = 1;
         mPumpStat = 1;
         pumpStartTime = millis();  // 펌프가 켜진 시간을 기록합니다.
+        pumpTimeout = 1800000;     // 초기값 30분
         client.publish(mPubAddr.c_str(), getPubString(mRemote, mPumpStat).c_str());
       } else if (strcmp(pumpStatus, "off") == 0) {
         Serial.println("Pump is OFF");          
         digitalWrite(WATER_PIN, LOW);
         mRemote = 1;
         mPumpStat = 0;
+        pumpTimeout = 0;
         client.publish(mPubAddr.c_str(), getPubString(mRemote, mPumpStat).c_str());
       } else {
         Serial.println("Invalid pump status");
@@ -181,6 +188,7 @@ void loop() {
       pumpTimeout = 1800000;  // 스위치로 켜질 때는 기본 타임아웃 30분 설정
     } else {
       mPumpStat = 0;
+      pumpTimeout = 0;
       digitalWrite(WATER_PIN, LOW);
     }
     if (client.connected()) {
