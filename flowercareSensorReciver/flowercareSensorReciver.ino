@@ -52,7 +52,7 @@ void connectMqtt() {
   client.setServer(MQTT_HOST, MQTT_PORT);
   
   while (!client.connected()) {
-    String clientId = String(MQTT_CLIENTID) + "_" + String(MQTT_DEVICEID);
+    String clientId = String(MQTT_USERID) + "_" + String(MQTT_DEVICEID);
     if (!client.connect(clientId.c_str())) {
       Serial.print("MQTT connection failed:");
       Serial.print(client.state());
@@ -250,7 +250,7 @@ bool processFloraService(BLERemoteService* floraService, char* deviceMacAddress,
   }
 
   //String baseTopic = MQTT_BASE_TOPIC + "/" + deviceMacAddress + "/";
-  String baseTopic =  MQTT_PUB + String(MQTT_CLIENTID) + "/" + MQTT_DEVICEID;  
+  String baseTopic =  MQTT_PUB + String(MQTT_USERID) + "/" + MQTT_DEVICEID;  
   bool dataSuccess = readFloraDataCharacteristic(floraService, baseTopic);
 
   return dataSuccess;
