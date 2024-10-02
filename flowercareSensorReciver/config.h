@@ -2,7 +2,6 @@
 // array of different xiaomi flora MAC addresses
 char* FLORA_DEVICES[] = {
     "C4:7C:8D:6D:6E:A2"    
-    //"c4:7c:8d:6d:6e:a0"
 };
 
 // sleep between to runs in seconds
@@ -18,14 +17,17 @@ char* FLORA_DEVICES[] = {
 const char*   WIFI_SSID       = "frogmon";
 const char*   WIFI_PASSWORD   = "1234567890";
 
-// MQTT topic gets defined by "<MQTT_BASE_TOPIC>/<MAC_ADDRESS>/<property>"
+// MQTT topic gets defined by "<MQTT_DEVICEID>/<MAC_ADDRESS>/<property>"
 // where MAC_ADDRESS is one of the values from FLORA_DEVICES array
 // property is either temperature, moisture, conductivity, light or battery
 
-const char*   MQTT_HOST       = "192.168.0.19";
-const int     MQTT_PORT       = 1883;
-const char*   MQTT_CLIENTID   = "frogmon";
+const char*   MQTT_HOST       = "frogmon.synology.me";
+const int     MQTT_PORT       = 8359;
+const char*   MQTT_CLIENTID   = "test";
 const char*   MQTT_USERNAME   = "root";
 const char*   MQTT_PASSWORD   = "PASSWORD";
-const char*   MQTT_BASE_TOPIC = "flower02";
+const char*   MQTT_DEVICEID   = "flower02";
 const int     MQTT_RETRY_WAIT = 5000;
+const char*   MQTT_PUB        = "FARMs/Status/";        // 원격컨트롤 서버 상태정보용 주소 - 변경 불필요
+const char*   MQTT_SUB        = "FARMs/Control/";       // 원격컨트롤 서버 제어용 주소 - 변경 불필요
+
