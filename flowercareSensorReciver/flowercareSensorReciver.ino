@@ -149,7 +149,7 @@ bool readFloraDataCharacteristic(BLERemoteService* floraService, String baseTopi
   Serial.println("- Read value from characteristic");
   String value;
   try {
-    value = floraCharacteristic->readValue();
+    value = String(floraCharacteristic->readValue().c_str());
   }
   catch (...) {
     // something went wrong
@@ -230,7 +230,7 @@ int readFloraBatteryCharacteristic(BLERemoteService* floraService) {
   Serial.println("- Read value from characteristic");
   String value;
   try {
-    value = floraCharacteristic->readValue();
+    value = String(floraCharacteristic->readValue().c_str());
   }
   catch (...) {
     // something went wrong
