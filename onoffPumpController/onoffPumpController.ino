@@ -28,12 +28,35 @@ unsigned long lastMsg = 0;
 char msg[MSG_BUFFER_SIZE];
 int value = 0;
 
+String getFormattedRemainingTime() {
+  if (mPumpStat == 1) {
+    unsigned long currentMillis = millis();
+    unsigned long elapsedTime = currentMillis - pumpStartTime;
+    int remainingTime = (pumpTimeout - elapsedTime) / 1000; // 남은 시간을 초 단위로 계산
+    
+    if (remainingTime > 0) {
+      int minutes = remainingTime / 60;  // 남은 시간을 분으로 변환
+      int seconds = remainingTime % 60;  // 남은 시간을 초로 변환
+      
+      // 남은 시간 포맷팅
+      String formattedTime = "";
+      if (minutes > 0) {
+        formattedTime += String(minutes) + "min ";
+      }
+      formattedTime += String(seconds) + "sec";
+      
+      return formattedTime;
+    }
+  }
+  return "0sec";  // 펌프가 꺼져있거나 시간이 0 이하일 때
+}
+
 String getPubString(int remote, int stat) {
   // Create a DynamicJsonDocument
   DynamicJsonDocument doc(100);
 
   String strStatus = stat == 1 ? "on" : "off";  
-  int remainingTime = getRemainingTime(); 
+  String remainingTime = getFormattedRemainingTime(); 
   
   doc["remote"] = remote;
   doc["pump"] = strStatus;  
@@ -102,18 +125,18 @@ void callback(char* topic, byte* payload, unsigned int length) {
         pumpTimeout = 1800000;     // 초기값 30분
         client.publish(mPubAddr.c_str(), getPubString(mRemote, mPumpStat).c_str());
       } else if (strcmp(pumpStatus, "off") == 0) {
-        Serial.println("Pump is OFF");          
+        Serial.println("Pump is OFF");
         digitalWrite(WATER_PIN, LOW);
         mRemote = 1;
         mPumpStat = 0;
-        pumpTimeout = 0;
+        pumpTimeout = 0;  // 펌프가 꺼질 때는 타이머도 0으로 설정합니다.
         client.publish(mPubAddr.c_str(), getPubString(mRemote, mPumpStat).c_str());
       } else {
         Serial.println("Invalid pump status");
       }
-    } 
-    
-    if (doc.containsKey("timer")) {
+    }
+
+    if (doc.containsKey("timer") && mPumpStat == 1) {  // 펌프가 켜져 있을 때만 타이머 값을 적용
       int timerValue = doc["timer"];
       if (timerValue > 0) {
         Serial.print("Pump is ON for ");
@@ -126,8 +149,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
         pumpTimeout = timerValue * 60000;  // 타이머 값 설정 (분 단위)
         client.publish(mPubAddr.c_str(), getPubString(mRemote, mPumpStat).c_str());
       }
-    } 
-        
+    }
+
     if (doc.containsKey("status")) {
       int numStatus = doc["status"];
       if (numStatus == 1) {
@@ -135,7 +158,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
         client.publish(mPubAddr.c_str(), getPubString(mRemote, mPumpStat).c_str());
       }
     }
-  }    
+  }
+
 }
 
 int getRemainingTime() {
@@ -147,6 +171,7 @@ int getRemainingTime() {
   }
   return 0;
 }
+
 
 void reconnect() {
   static unsigned long lastReconnectAttempt = 0;  // 마지막 시도 시간 기록
@@ -243,14 +268,15 @@ void loop() {
       }
 
       // 1초마다 남은 시간을 체크하고 출력
-      if (currentMillis - lastMsg > 1000) {
+      if (mPumpStat == 1 && currentMillis - lastMsg > 1000) {
         digitalWrite(BUILTIN_LED, HIGH);
         sendTime++;
         lastMsg = currentMillis;
-        int remainingTime = getRemainingTime();
+        String remainingTime = getFormattedRemainingTime();
         Serial.print("Remaining Time: ");
         Serial.print(remainingTime);
         Serial.println(" minutes");
+        client.publish(mPubAddr.c_str(), getPubString(mRemote, mPumpStat).c_str());
       }
     }
   }
