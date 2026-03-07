@@ -1,7 +1,8 @@
   
 // array of different xiaomi flora MAC addresses
 char* FLORA_DEVICES[] = {
-    "C4:7C:8D:6D:6E:A2"    
+    "C4:7C:8D:6D:6E:A2"
+    //c4:7c:8d:6d:6e:60    
 };
 
 // sleep between to runs in seconds
